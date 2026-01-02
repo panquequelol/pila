@@ -1,3 +1,12 @@
+:root {
+  --color-bg: #fff;
+  --color-text: #111;
+  --color-text-light: #666;
+  --color-text-done: #aaa;
+  --color-text-placeholder: #999;
+  --color-keyword: #e11d48;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -6,8 +15,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: system-ui, -apple-system, sans-serif;
-  background: #fff;
-  color: #111;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 #root {
@@ -37,12 +46,19 @@ body {
   cursor: pointer;
   user-select: none;
   min-width: 20px;
-  color: #666;
+  color: var(--color-text-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.todo-toggle svg {
+  display: block;
 }
 
 .todo-line[data-state="DONE"] .todo-text {
-  text-decoration: line-through;
-  color: #888;
+  color: var(--color-text-done);
+  transition: color 0.3s ease;
 }
 
 .todo-text {
@@ -59,11 +75,11 @@ body {
 
 .todo-text:empty:before {
   content: attr(data-placeholder);
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .keyword-today {
-  color: #e11d48;
+  color: var(--color-keyword);
   font-weight: 500;
   background: transparent;
 }

@@ -3,6 +3,7 @@ import { useSetAtom } from "jotai";
 import { toggleLineAtom, updateLineTextAtom } from "../atoms";
 import { useEffect, useRef } from "react";
 import { getCursorOffset, setCursorOffset } from "../utils/cursor";
+import { motion } from "motion/react";
 
 interface TodoLineProps {
   line: TodoLineType;
@@ -127,9 +128,51 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
   return (
     <div className={`todo-line ${isEmpty ? "todo-line--empty" : ""}`} data-state={line.state}>
       {!isEmpty && (
-        <span className="todo-toggle" onClick={handleToggle}>
-          {line.state === "DONE" ? "✓" : "○"}
-        </span>
+        <motion.div
+          className="todo-toggle"
+          onClick={handleToggle}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            {/* Box */}
+            <motion.rect
+              x="2"
+              y="2"
+              width="16"
+              height="16"
+              rx="3"
+              stroke={line.state === "DONE" ? "#aaa" : "#666"}
+              strokeWidth="2"
+              initial={false}
+              transition={{ duration: 0.3 }}
+            />
+            {/* Checkmark - animates in with scale */}
+            <motion.g
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{
+                scale: line.state === "DONE" ? 1 : 0,
+                opacity: line.state === "DONE" ? 1 : 0,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 200,
+                damping: 12,
+                delay: line.state === "DONE" ? 0.05 : 0,
+              }}
+              style={{ transformOrigin: "10px 10px" }}
+            >
+              <path
+                d="M6 10 L9 13 L14 7"
+                stroke="#aaa"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </motion.g>
+          </svg>
+        </motion.div>
       )}
       <div
         ref={editorRef}
