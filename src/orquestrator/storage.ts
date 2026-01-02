@@ -1,5 +1,5 @@
 import SecureLS from "secure-ls";
-import { STORAGE_KEY, ARCHIVE_STORAGE_KEY, type NotepadDocument, type ArchivedSections, type ArchivedSection } from "./types";
+import { STORAGE_KEY, ARCHIVE_STORAGE_KEY, SETTINGS_STORAGE_KEY, type NotepadDocument, type ArchivedSections, type ArchivedSection, type AppSettings } from "./types";
 
 const ls = new SecureLS({ encodingType: "aes" });
 
@@ -58,5 +58,29 @@ export const storage = {
     }
 
     return filtered;
+  },
+
+  // Settings storage methods
+  getSettings: (): AppSettings => {
+    try {
+      const data = ls.get(SETTINGS_STORAGE_KEY);
+      if (!data) {
+        return { darkMode: "light", textSize: "normal", language: "en" };
+      }
+      const parsed = JSON.parse(data);
+      // Merge with defaults for any missing fields (migration)
+      return {
+        darkMode: parsed.darkMode ?? "light",
+        textSize: parsed.textSize ?? "normal",
+        language: parsed.language ?? "en",
+      };
+    } catch (error) {
+      console.error("Failed to load settings:", error);
+      return { darkMode: "light", textSize: "normal", language: "en" };
+    }
+  },
+
+  setSettings: (settings: AppSettings): void => {
+    ls.set(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   },
 };

@@ -20,3 +20,15 @@ export type ArchivedSection = {
 export type ArchivedSections = ArchivedSection[];
 
 export const ARCHIVE_STORAGE_KEY = "nairobi-notepad-archive";
+
+export type DarkMode = "light" | "dark";
+export type TextSizeProfile = "normal" | "lsize" | "xlsize" | "xxlsize";
+export type Language = "en" | "es" | "ja" | "zh";
+
+export type AppSettings = {
+  darkMode: DarkMode;
+  textSize: TextSizeProfile;
+  language: Language;
+};
+
+export const SETTINGS_STORAGE_KEY = "nairobi-notepad-settings";

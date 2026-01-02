@@ -1,4 +1,6 @@
-export function formatTimestamp(timestamp: number): string {
+import type { Translations } from "../i18n/translations";
+
+export function formatTimestamp(timestamp: number, t: Translations): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -6,16 +8,16 @@ export function formatTimestamp(timestamp: number): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `updated ${diffMins}m ago`;
-  if (diffHours < 24) return `updated ${diffHours}h ago`;
-  if (diffDays === 1) return "updated yesterday";
-  if (diffDays < 7) return `updated ${diffDays}d ago`;
+  if (diffMins < 1) return t.justNow;
+  if (diffMins < 60) return t.minsAgo(diffMins);
+  if (diffHours < 24) return t.hoursAgo(diffHours);
+  if (diffDays === 1) return t.yesterday;
+  if (diffDays < 7) return t.daysAgo(diffDays);
 
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function formatArchiveTimestamp(timestamp: number): string {
+export function formatArchiveTimestamp(timestamp: number, t: Translations): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -23,11 +25,11 @@ export function formatArchiveTimestamp(timestamp: number): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "archived just now";
-  if (diffMins < 60) return `archived ${diffMins}m ago`;
-  if (diffHours < 24) return `archived ${diffHours}h ago`;
-  if (diffDays === 1) return "archived yesterday";
-  if (diffDays < 7) return `archived ${diffDays}d ago`;
+  if (diffMins < 1) return t.archivedJustNow;
+  if (diffMins < 60) return t.archivedMinsAgo(diffMins);
+  if (diffHours < 24) return t.archivedHoursAgo(diffHours);
+  if (diffDays === 1) return t.archivedYesterday;
+  if (diffDays < 7) return t.archivedDaysAgo(diffDays);
 
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `${t.archivedDaysAgoPrefix} ${date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
 }

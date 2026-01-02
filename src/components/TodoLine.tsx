@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { getCursorOffset, setCursorOffset } from "../utils/cursor";
 import { formatTimestamp } from "../utils/timestamp";
 import { motion } from "motion/react";
+import type { Translations } from "../i18n/translations";
 
 interface TodoLineProps {
   line: TodoLineType;
@@ -13,6 +14,7 @@ interface TodoLineProps {
   onNavigate: (index: number, direction: "up" | "down" | "left" | "right") => void;
   onDeleteAndNavigate: (currentIndex: number) => void;
   updatedAt: number;
+  translations: Translations;
 }
 
 // Escape HTML to prevent XSS - only allow @today keyword highlighting
@@ -43,7 +45,7 @@ const saveCursorPosition = (element: HTMLElement): number | null => {
   return preCaretRange.toString().length;
 };
 
-export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt }: TodoLineProps) => {
+export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, translations }: TodoLineProps) => {
   const toggleLine = useSetAtom(toggleLineAtom);
   const updateLineText = useSetAtom(updateLineTextAtom);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -136,7 +138,7 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ strokeWidth: "var(--stroke-width)" }}>
             {/* Box */}
             <motion.rect
               x="2"
@@ -144,8 +146,8 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
               width="16"
               height="16"
               rx="3"
-              stroke={line.state === "DONE" ? "#aaa" : "#666"}
-              strokeWidth="2"
+              stroke="var(--color-text-done)"
+              strokeWidth="var(--stroke-width)"
               initial={false}
               transition={{ duration: 0.3 }}
             />
@@ -166,8 +168,8 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
             >
               <path
                 d="M6 10 L9 13 L14 7"
-                stroke="#aaa"
-                strokeWidth="2.5"
+                stroke="var(--color-text-done)"
+                strokeWidth="var(--stroke-width)"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
@@ -187,7 +189,7 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
         data-line-id={line.id}
       />
       {!isEmpty && (
-        <span className="todo-timestamp">{formatTimestamp(updatedAt)}</span>
+        <span className="todo-timestamp">{formatTimestamp(updatedAt, translations)}</span>
       )}
     </div>
   );

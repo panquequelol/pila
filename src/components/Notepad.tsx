@@ -3,18 +3,23 @@ import { useAtom, useSetAtom } from "jotai";
 import { AnimatePresence, motion } from "motion/react";
 import { documentAtom, addLineAtom, deleteLineAtom } from "../atoms";
 import { archiveSectionAtom, viewModeAtom } from "../atoms/archive";
+import { settingsAtom } from "../atoms/settings";
 import { TodoLine } from "./TodoLine";
 import { ArchiveView } from "./ArchiveView";
 import { setCursorOffset } from "../utils/cursor";
 import { getSections, type Section } from "../orquestrator/sections";
 import { documentService } from "../orquestrator/document";
+import { useTranslations } from "../i18n/translations";
 
 export const Notepad = () => {
   const [docs] = useAtom(documentAtom);
-  const addLine = useSetAtom(addLineAtom);
+  const setDocument = useSetAtom(documentAtom);
+  const [_, addLine] = useAtom(addLineAtom);
   const deleteLine = useSetAtom(deleteLineAtom);
   const archiveSection = useSetAtom(archiveSectionAtom);
   const [viewMode, setViewMode] = useAtom(viewModeAtom);
+  const [settings] = useAtom(settingsAtom);
+  const t = useTranslations(settings.language);
   const lastLineCountRef = useRef(0);
   const shouldFocusLastRef = useRef(false);
   const pendingFocusRef = useRef<{ lineId: string | null; offset: number }>({ lineId: null, offset: 0 });
@@ -45,21 +50,31 @@ export const Notepad = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [setViewMode]);
 
+  // Ensure document has at least one line (but don't interfere with archiving focus)
   useEffect(() => {
-    if (docs.length === 0) {
+    if (docs.length === 0 && !shouldFocusLastRef.current) {
       addLine("");
     }
   }, [docs.length, addLine]);
 
   // Focus the last line when a new line is added
   useEffect(() => {
-    if (shouldFocusLastRef.current && docs.length > lastLineCountRef.current) {
-      const lastLine = docs[docs.length - 1];
-      if (lastLine) {
-        const lastInput = document.querySelector(`[data-line-id="${lastLine.id}"]`) as HTMLElement;
-        lastInput?.focus();
-      }
-      shouldFocusLastRef.current = false;
+    if (!shouldFocusLastRef.current) return;
+    if (docs.length <= lastLineCountRef.current) {
+      lastLineCountRef.current = docs.length;
+      return;
+    }
+
+    shouldFocusLastRef.current = false;
+    const lastLine = docs[docs.length - 1];
+    if (lastLine) {
+      // Double RAF ensures React has committed the DOM
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const lastInput = document.querySelector(`[data-line-id="${lastLine.id}"]`) as HTMLElement;
+          lastInput?.focus();
+        });
+      });
     }
     lastLineCountRef.current = docs.length;
   }, [docs.length]);
@@ -105,20 +120,22 @@ export const Notepad = () => {
           });
           archivingSectionRef.current = null;
 
-          // Clean up extra empty lines and focus first empty one
-          const currentDoc = documentService.load();
-          const cleaned = documentService.cleanUpEmptyLines(currentDoc);
-          if (cleaned.length !== currentDoc.length) {
-            documentService.save(cleaned);
-            // Focus first empty line
-            const emptyLine = cleaned.find((line) => !line.text.trim());
-            if (emptyLine) {
-              setTimeout(() => {
-                const element = document.querySelector(`[data-line-id="${emptyLine.id}"]`) as HTMLElement;
-                element?.focus();
-              }, 50);
-            }
-          }
+          // Use zero-delay timeout to process after React has handled the archiveSection update
+          setTimeout(() => {
+            const currentDoc = documentService.load();
+            const nonEmpty = currentDoc.filter((line) => line.text.trim());
+
+            // Update document atom atomically
+            documentService.save(nonEmpty);
+            setDocument(nonEmpty);
+
+            // Set up the refs for focus - must happen BEFORE addLine
+            lastLineCountRef.current = nonEmpty.length;
+            shouldFocusLastRef.current = true;
+
+            // Add the new line - this will trigger the focus useEffect
+            addLine("");
+          }, 0);
         }
       }, 300);
       return;
@@ -202,6 +219,7 @@ export const Notepad = () => {
                   onNavigate={handleNavigate}
                   onDeleteAndNavigate={handleDeleteAndNavigate}
                   updatedAt={line.updatedAt}
+                  translations={t}
                 />
               </motion.div>
             );

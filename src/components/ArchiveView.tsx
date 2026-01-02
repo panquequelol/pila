@@ -1,16 +1,22 @@
 import { useAtom, useSetAtom } from "jotai";
-import { archiveAtom, restoreSectionAtom, deleteArchiveAtom } from "../atoms/archive";
+import { archiveAtom, restoreSectionAtom, deleteArchiveAtom, viewModeAtom } from "../atoms/archive";
+import { settingsAtom } from "../atoms/settings";
 import { formatArchiveTimestamp } from "../utils/timestamp";
 import { motion, AnimatePresence } from "motion/react";
+import { SettingsPanel } from "./SettingsPanel";
+import { useTranslations } from "../i18n/translations";
 
 export const ArchiveView = () => {
   const [archive] = useAtom(archiveAtom);
   const restore = useSetAtom(restoreSectionAtom);
   const deleteArchive = useSetAtom(deleteArchiveAtom);
+  const [settings] = useAtom(settingsAtom);
+  const t = useTranslations(settings.language);
 
   return (
     <div className="archive-view">
-      <p className="archive-notice">archives are deleted after 7 days</p>
+      <SettingsPanel />
+      <p className="archive-notice">{t.archiveNotice}</p>
       <AnimatePresence mode="popLayout">
         {archive.length === 0 ? (
           <motion.p
@@ -19,7 +25,7 @@ export const ArchiveView = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            no archived sections yet
+            {t.archiveEmpty}
           </motion.p>
         ) : (
           <div className="archive-sections">
@@ -35,20 +41,20 @@ export const ArchiveView = () => {
               >
                 <div className="archive-header">
                   <span className="archive-date">
-                    {formatArchiveTimestamp(section.archivedAt)}
+                    {formatArchiveTimestamp(section.archivedAt, t)}
                   </span>
                   <div className="archive-actions">
                     <button
                       className="archive-btn restore"
                       onClick={() => restore(section.id)}
                     >
-                      restore
+                      {t.restore}
                     </button>
                     <button
                       className="archive-btn delete"
                       onClick={() => deleteArchive(section.id)}
                     >
-                      delete
+                      {t.delete}
                     </button>
                   </div>
                 </div>
