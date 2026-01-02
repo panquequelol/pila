@@ -15,6 +15,8 @@ interface TodoLineProps {
   onDeleteAndNavigate: (currentIndex: number) => void;
   updatedAt: number;
   translations: Translations;
+  isEmptyDocument?: boolean;
+  showPlaceholder?: boolean;
 }
 
 // Escape HTML to prevent XSS - only allow @today keyword highlighting
@@ -45,13 +47,16 @@ const saveCursorPosition = (element: HTMLElement): number | null => {
   return preCaretRange.toString().length;
 };
 
-export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, translations }: TodoLineProps) => {
+export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, translations, isEmptyDocument, showPlaceholder }: TodoLineProps) => {
   const toggleLine = useSetAtom(toggleLineAtom);
   const updateLineText = useSetAtom(updateLineTextAtom);
   const editorRef = useRef<HTMLDivElement>(null);
   const lastTextRef = useRef<string>("");
 
   const isEmpty = !line.text.trim();
+
+  // Detect platform for keyboard shortcut display
+  const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
   const handleToggle = () => {
     if (!isEmpty) {
@@ -130,7 +135,7 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
   }, [line.text]);
 
   return (
-    <div className={`todo-line ${isEmpty ? "todo-line--empty" : ""}`} data-state={line.state}>
+    <div className={`todo-line ${isEmpty ? "todo-line--empty" : ""}`} data-state={line.state} data-empty-document={isEmptyDocument ? "true" : "false"}>
       {!isEmpty && (
         <motion.div
           className="todo-toggle"
@@ -185,9 +190,14 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         className="todo-text"
-        data-placeholder="..."
+        data-placeholder={isEmptyDocument ? "" : "..."}
         data-line-id={line.id}
       />
+      {showPlaceholder && !line.text && (
+        <div className="todo-placeholder">
+          {translations.emptyHint} {isMac ? "⌘ + p" : "ctrl + p"}
+        </div>
+      )}
       {!isEmpty && (
         <span className="todo-timestamp">{formatTimestamp(updatedAt, translations)}</span>
       )}

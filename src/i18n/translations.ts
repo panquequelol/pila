@@ -19,6 +19,9 @@ export type Translations = {
   langJapanese: string;
   langChinese: string;
 
+  // Empty state hint
+  emptyHint: string;
+
   // Timestamps
   justNow: string;
   minsAgo: (mins: number) => string;
@@ -47,6 +50,7 @@ export const translations: Record<Language, Translations> = {
     langSpanish: "Español (Spanish)",
     langJapanese: "日本語 (Japanese)",
     langChinese: "中文 (Chinese)",
+    emptyHint: "type here. settings at",
     justNow: "just now",
     minsAgo: (mins) => `updated ${mins}m ago`,
     hoursAgo: (hours) => `updated ${hours}h ago`,
@@ -72,6 +76,7 @@ export const translations: Record<Language, Translations> = {
     langSpanish: "Español",
     langJapanese: "日本語 (Japonés)",
     langChinese: "中文 (Chino)",
+    emptyHint: "escribe aquí. configuración en",
     justNow: "ahora mismo",
     minsAgo: (mins) => `actualizado hace ${mins}m`,
     hoursAgo: (hours) => `actualizado hace ${hours}h`,
@@ -97,6 +102,7 @@ export const translations: Record<Language, Translations> = {
     langSpanish: "Español (スペイン語)",
     langJapanese: "日本語",
     langChinese: "中文 (中国語)",
+    emptyHint: "ここに入力。設定は",
     justNow: "たった今",
     minsAgo: (mins) => `${mins}分前に更新`,
     hoursAgo: (hours) => `${hours}時間前に更新`,
@@ -122,6 +128,7 @@ export const translations: Record<Language, Translations> = {
     langSpanish: "Español (西班牙语)",
     langJapanese: "日本語 (日语)",
     langChinese: "中文",
+    emptyHint: "在此输入。设置在",
     justNow: "刚刚",
     minsAgo: (mins) => `${mins}分钟前更新`,
     hoursAgo: (hours) => `${hours}小时前更新`,

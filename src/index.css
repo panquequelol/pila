@@ -133,8 +133,25 @@ body {
   min-height: 16px;
 }
 
-.todo-line--empty .todo-text:empty:before {
+/* Hide placeholder for empty lines, except when the entire document is empty */
+.todo-line--empty:not([data-empty-document="true"]) .todo-text:empty:before {
   content: "";
+}
+
+/* Show pointer cursor when document is empty to indicate clickability */
+.todo-line--empty[data-empty-document="true"] .todo-text {
+  cursor: text;
+}
+
+/* Empty state placeholder */
+.todo-placeholder {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  color: var(--color-text-placeholder);
+  font-size: var(--base-font-size);
+  text-transform: lowercase;
 }
 
 /* Timestamp badge */

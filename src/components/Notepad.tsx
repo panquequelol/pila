@@ -27,6 +27,9 @@ export const Notepad = () => {
   const archivingSectionRef = useRef<{ startIndex: number; endIndex: number } | null>(null);
   const hasAutoFocusedRef = useRef(false);
 
+  // Check if document is effectively empty (no visible todos)
+  const hasVisibleTodos = docs.some((line) => line.text.trim());
+
   // Auto-focus first empty line on mount
   useEffect(() => {
     if (hasAutoFocusedRef.current) return;
@@ -114,26 +117,48 @@ export const Notepad = () => {
       // After exit animation, actually archive
       setTimeout(() => {
         if (archivingSectionRef.current) {
+          // Capture indices before clearing the ref
+          const archivedStartIndex = archivingSectionRef.current.startIndex;
+          const archivedEndIndex = archivingSectionRef.current.endIndex;
+
           archiveSection({
-            startIndex: archivingSectionRef.current.startIndex,
-            endIndex: archivingSectionRef.current.endIndex,
+            startIndex: archivedStartIndex,
+            endIndex: archivedEndIndex,
           });
           archivingSectionRef.current = null;
 
           // Use zero-delay timeout to process after React has handled the archiveSection update
           setTimeout(() => {
             const currentDoc = documentService.load();
-            const nonEmpty = currentDoc.filter((line) => line.text.trim());
 
-            // Update document atom atomically
-            documentService.save(nonEmpty);
-            setDocument(nonEmpty);
+            // After archiving, the document shrinks by (endIndex - startIndex) lines
+            // The line that was at endIndex is now at startIndex position
+            // We need to remove the empty line at this new position
+            const emptyLineIndex = archivedStartIndex;
+            if (emptyLineIndex < currentDoc.length) {
+              const lineAfterArchived = currentDoc[emptyLineIndex];
+              if (lineAfterArchived && !lineAfterArchived.text.trim()) {
+                // Remove only this specific empty line
+                const cleaned = [
+                  ...currentDoc.slice(0, emptyLineIndex),
+                  ...currentDoc.slice(emptyLineIndex + 1),
+                ];
+                documentService.save(cleaned);
+                setDocument(cleaned);
 
-            // Set up the refs for focus - must happen BEFORE addLine
-            lastLineCountRef.current = nonEmpty.length;
+                // Set up the refs for focus - must happen BEFORE addLine
+                lastLineCountRef.current = cleaned.length;
+                shouldFocusLastRef.current = true;
+
+                // Add the new line - this will trigger the focus useEffect
+                addLine("");
+                return;
+              }
+            }
+
+            // No empty line to remove, just update refs and add new line
+            lastLineCountRef.current = currentDoc.length;
             shouldFocusLastRef.current = true;
-
-            // Add the new line - this will trigger the focus useEffect
             addLine("");
           }, 0);
         }
@@ -220,6 +245,8 @@ export const Notepad = () => {
                   onDeleteAndNavigate={handleDeleteAndNavigate}
                   updatedAt={line.updatedAt}
                   translations={t}
+                  isEmptyDocument={!hasVisibleTodos}
+                  showPlaceholder={!hasVisibleTodos && index === 0}
                 />
               </motion.div>
             );
