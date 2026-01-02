@@ -1,4 +1,15 @@
+@font-face {
+  font-family: 'Uncut Sans';
+  src: url('/UncutSans-Variable.ttf') format('truetype-variations');
+  font-weight: 1 999;
+  font-style: normal;
+}
+
 :root {
+  font-family: 'Uncut Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
   --color-bg: #fff;
   --color-text: #111;
   --color-text-light: #666;
@@ -7,7 +18,6 @@
   --color-keyword: #e11d48;
   --color-archive-bg: #f9f9f9;
   --color-archive-border: #eee;
-}
 
 * {
   box-sizing: border-box;
