@@ -1,4 +1,5 @@
 import SecureLS from "secure-ls";
+import { subWeeks } from "date-fns";
 import { STORAGE_KEY, ARCHIVE_STORAGE_KEY, SETTINGS_STORAGE_KEY, type NotepadDocument, type ArchivedSections, type ArchivedSection, type AppSettings } from "./types";
 
 const ls = new SecureLS({ encodingType: "aes" });
@@ -69,9 +70,9 @@ export const storage = {
   },
 
   cleanOldArchives: (): ArchivedSections => {
-    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cutoff = subWeeks(Date.now(), 1).getTime();
     const current = storage.getArchive();
-    const filtered = current.filter((section) => section.archivedAt > oneWeekAgo);
+    const filtered = current.filter((section) => section.archivedAt > cutoff);
 
     if (filtered.length !== current.length) {
       storage.setArchive(filtered);

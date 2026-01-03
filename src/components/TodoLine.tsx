@@ -1,4 +1,5 @@
 import type { TodoLine as TodoLineType } from "../orquestrator";
+import type { Language } from "../orquestrator/types";
 import { useSetAtom } from "jotai";
 import { toggleLineAtom, updateLineTextAtom } from "../atoms";
 import { useEffect, useRef, memo, useCallback } from "react";
@@ -18,6 +19,7 @@ interface TodoLineProps {
   onDeleteAndNavigate: (currentIndex: number) => void;
   updatedAt: number;
   translations: Translations;
+  language: Language;
   isEmptyDocument?: boolean;
   showPlaceholder?: boolean;
   isAfterLastTodo?: boolean;
@@ -51,7 +53,7 @@ const saveCursorPosition = (element: HTMLElement): number | null => {
   return preCaretRange.toString().length;
 };
 
-export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, translations, isEmptyDocument, showPlaceholder, isAfterLastTodo = false }: TodoLineProps) => {
+export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, translations, language, isEmptyDocument, showPlaceholder, isAfterLastTodo = false }: TodoLineProps) => {
   const toggleLine = useSetAtom(toggleLineAtom);
   const updateLineText = useSetAtom(updateLineTextAtom);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -200,7 +202,7 @@ export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAnd
         </div>
       )}
       {!isEmpty && (
-        <span className="todo-timestamp">{formatTimestamp(updatedAt, translations)}</span>
+        <span className="todo-timestamp">{formatTimestamp(updatedAt, language)}</span>
       )}
     </div>
   );
@@ -211,6 +213,7 @@ export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAnd
     prevProps.line.text === nextProps.line.text &&
     prevProps.line.state === nextProps.line.state &&
     prevProps.updatedAt === nextProps.updatedAt &&
+    prevProps.language === nextProps.language &&
     prevProps.index === nextProps.index &&
     prevProps.totalLines === nextProps.totalLines &&
     prevProps.isEmptyDocument === nextProps.isEmptyDocument &&

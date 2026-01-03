@@ -25,19 +25,6 @@ export type Translations = {
 
   // Empty state hint
   emptyHint: string;
-
-  // Timestamps
-  justNow: string;
-  minsAgo: (mins: number) => string;
-  hoursAgo: (hours: number) => string;
-  daysAgo: (days: number) => string;
-  yesterday: string;
-  archivedJustNow: string;
-  archivedMinsAgo: (mins: number) => string;
-  archivedHoursAgo: (hours: number) => string;
-  archivedDaysAgo: (days: number) => string;
-  archivedYesterday: string;
-  archivedDaysAgoPrefix: string;
 };
 
 export const translations: Record<Language, Translations> = {
@@ -59,17 +46,6 @@ export const translations: Record<Language, Translations> = {
     langJapanese: "日本語 (Japanese)",
     langChinese: "中文 (Chinese)",
     emptyHint: "type here. settings at",
-    justNow: "now",
-    minsAgo: (mins) => `${mins}m`,
-    hoursAgo: (hours) => `${hours}h`,
-    daysAgo: (days) => `${days}d`,
-    yesterday: "1d",
-    archivedJustNow: "now",
-    archivedMinsAgo: (mins) => `${mins}m`,
-    archivedHoursAgo: (hours) => `${hours}h`,
-    archivedDaysAgo: (days) => `${days}d`,
-    archivedYesterday: "1d",
-    archivedDaysAgoPrefix: "",
   },
   es: {
     archiveNotice: "los archivos se eliminan después de 7 días",
@@ -89,17 +65,6 @@ export const translations: Record<Language, Translations> = {
     langJapanese: "日本語 (Japonés)",
     langChinese: "中文 (Chino)",
     emptyHint: "escribe aquí. configuración en",
-    justNow: "ahora",
-    minsAgo: (mins) => `${mins}m`,
-    hoursAgo: (hours) => `${hours}h`,
-    daysAgo: (days) => `${days}d`,
-    yesterday: "1d",
-    archivedJustNow: "ahora",
-    archivedMinsAgo: (mins) => `${mins}m`,
-    archivedHoursAgo: (hours) => `${hours}h`,
-    archivedDaysAgo: (days) => `${days}d`,
-    archivedYesterday: "1d",
-    archivedDaysAgoPrefix: "",
   },
   ja: {
     archiveNotice: "アーカイブは7日後に削除されます",
@@ -119,17 +84,6 @@ export const translations: Record<Language, Translations> = {
     langJapanese: "日本語",
     langChinese: "中文 (中国語)",
     emptyHint: "ここに入力。設定は",
-    justNow: "今",
-    minsAgo: (mins) => `${mins}分`,
-    hoursAgo: (hours) => `${hours}時間`,
-    daysAgo: (days) => `${days}日`,
-    yesterday: "1日",
-    archivedJustNow: "今",
-    archivedMinsAgo: (mins) => `${mins}分`,
-    archivedHoursAgo: (hours) => `${hours}時間`,
-    archivedDaysAgo: (days) => `${days}日`,
-    archivedYesterday: "1日",
-    archivedDaysAgoPrefix: "",
   },
   zh: {
     archiveNotice: "存档将在7天后删除",
@@ -149,17 +103,6 @@ export const translations: Record<Language, Translations> = {
     langJapanese: "日本語 (日语)",
     langChinese: "中文",
     emptyHint: "在此输入。设置在",
-    justNow: "刚刚",
-    minsAgo: (mins) => `${mins}分钟`,
-    hoursAgo: (hours) => `${hours}小时`,
-    daysAgo: (days) => `${days}天`,
-    yesterday: "1天",
-    archivedJustNow: "刚刚",
-    archivedMinsAgo: (mins) => `${mins}分钟`,
-    archivedHoursAgo: (hours) => `${hours}小时`,
-    archivedDaysAgo: (days) => `${days}天`,
-    archivedYesterday: "1天",
-    archivedDaysAgoPrefix: "",
   },
 };
 
