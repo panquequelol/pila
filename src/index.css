@@ -147,6 +147,11 @@ body {
   content: "";
 }
 
+/* Show "..." for trailing empty lines (after last todo) */
+.todo-line--trailing .todo-text:empty:before {
+  content: "...";
+}
+
 /* Show pointer cursor when document is empty to indicate clickability */
 .todo-line--empty[data-empty-document="true"] .todo-text {
   cursor: text;

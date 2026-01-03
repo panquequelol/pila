@@ -1,21 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtom, useSetAtom } from "jotai";
-import { AnimatePresence, motion } from "motion/react";
-import { documentAtom, addLineAtom, deleteLineAtom } from "../atoms";
+import { motion, AnimatePresence } from "motion/react";
+import { documentAtom, addLineAtom, deleteLineAtom, insertLineAfterAtom, insertLineBeforeAtom, splitLineAtom } from "../atoms";
 import { archiveSectionAtom, viewModeAtom } from "../atoms/archive";
 import { settingsAtom } from "../atoms/settings";
 import { TodoLine } from "./TodoLine";
 import { ArchiveView } from "./ArchiveView";
-import { setCursorOffset } from "../utils/cursor";
+import { getCursorOffset, setCursorOffset } from "../utils/cursor";
 import { isPhone } from "../utils/device";
 import { getSections, type Section } from "../orquestrator/sections";
 import { documentService } from "../orquestrator/document";
 import { useTranslations } from "../i18n/translations";
+import { storage } from "../orquestrator/storage";
 
 export const Notepad = () => {
   const [docs] = useAtom(documentAtom);
   const setDocument = useSetAtom(documentAtom);
   const [_, addLine] = useAtom(addLineAtom);
+  const [__, insertLineAfter] = useAtom(insertLineAfterAtom);
+  const [___, insertLineBefore] = useAtom(insertLineBeforeAtom);
+  const [____, splitLine] = useAtom(splitLineAtom);
   const deleteLine = useSetAtom(deleteLineAtom);
   const archiveSection = useSetAtom(archiveSectionAtom);
   const [viewMode, setViewMode] = useAtom(viewModeAtom);
@@ -24,10 +28,16 @@ export const Notepad = () => {
   const lastLineCountRef = useRef(0);
   const shouldFocusLastRef = useRef(false);
   const pendingFocusRef = useRef<{ lineId: string | null; offset: number }>({ lineId: null, offset: 0 });
+  const newLineToFocusRef = useRef<string | null>(null);
   const prevSectionsRef = useRef<Section[]>([]);
   const archivingSectionRef = useRef<{ startIndex: number; endIndex: number } | null>(null);
   const hasAutoFocusedRef = useRef(false);
   const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+  const [, forceUpdate] = useState({}); // Used to force re-render when archiving starts
+
+  // Ref for docs that doesn't cause re-renders when accessed
+  const docsRef = useRef(docs);
+  useEffect(() => { docsRef.current = docs; }, [docs]);
 
   // Detect phone device on mount and when window resizes
   useEffect(() => {
@@ -37,8 +47,16 @@ export const Notepad = () => {
     return () => window.removeEventListener("resize", checkPhone);
   }, []);
 
-  // Check if document is effectively empty (no visible todos)
-  const hasVisibleTodos = docs.some((line) => line.text.trim());
+  // Memoize expensive computations
+  const hasVisibleTodos = useMemo(() => docs.some((line) => line.text.trim()), [docs]);
+
+  // Find the index of the last non-empty line (for showing indicators on trailing empty lines)
+  const actualLastNonEmptyIndex = useMemo(() => {
+    for (let i = docs.length - 1; i >= 0; i--) {
+      if (docs[i].text.trim()) return i;
+    }
+    return -1;
+  }, [docs]);
 
   // Auto-focus first empty line on mount
   useEffect(() => {
@@ -51,17 +69,18 @@ export const Notepad = () => {
     }
   }, [docs]);
 
-  // Ctrl+P handler for toggling view mode
+  // Ctrl+P handler for toggling view mode (use capture to prevent browser default)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === "p" || e.key === "P") && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
+        e.stopPropagation();
         setViewMode((m) => (m === "active" ? "archive" : "active"));
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setViewMode]);
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true } as any);
+  }, []); // setViewMode from jotai is stable, no need for dependency
 
   // "/" handler for focusing the last empty line
   useEffect(() => {
@@ -80,15 +99,17 @@ export const Notepad = () => {
 
       if (e.key === "/" && viewMode === "active") {
         e.preventDefault();
+        // Use ref to avoid depending on docs array
+        const currentDocs = docsRef.current;
         // Find the last empty line
-        const lastEmptyLine = [...docs].reverse().find((line) => !line.text.trim());
+        const lastEmptyLine = [...currentDocs].reverse().find((line) => !line.text.trim());
 
         if (lastEmptyLine) {
           const element = document.querySelector(`[data-line-id="${lastEmptyLine.id}"]`) as HTMLElement;
           element?.focus();
         } else {
           // No empty line, create one and focus it
-          lastLineCountRef.current = docs.length;
+          lastLineCountRef.current = currentDocs.length;
           shouldFocusLastRef.current = true;
           addLine("");
         }
@@ -96,7 +117,7 @@ export const Notepad = () => {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [docs, viewMode, addLine]);
+  }, [viewMode, addLine]);
 
   // Ensure document has at least one line (but don't interfere with archiving focus)
   useEffect(() => {
@@ -116,13 +137,12 @@ export const Notepad = () => {
     shouldFocusLastRef.current = false;
     const lastLine = docs[docs.length - 1];
     if (lastLine) {
-      // Double RAF ensures React has committed the DOM
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const lastInput = document.querySelector(`[data-line-id="${lastLine.id}"]`) as HTMLElement;
-          lastInput?.focus();
-        });
-      });
+      // Use setTimeout to wait for React's commit phase
+      const timeoutId = setTimeout(() => {
+        const lastInput = document.querySelector(`[data-line-id="${lastLine.id}"]`) as HTMLElement;
+        lastInput?.focus();
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
     lastLineCountRef.current = docs.length;
   }, [docs.length]);
@@ -142,6 +162,25 @@ export const Notepad = () => {
     }
   }, [docs]);
 
+  // Focus the newly created line after Enter is pressed
+  useEffect(() => {
+    if (newLineToFocusRef.current) {
+      const lineIdToFocus = newLineToFocusRef.current;
+      newLineToFocusRef.current = null;
+      // Use setTimeout to wait for React's commit phase
+      const timeoutId = setTimeout(() => {
+        const element = document.querySelector(
+          `[data-line-id="${lineIdToFocus}"]`
+        ) as HTMLElement;
+        if (element) {
+          element.focus();
+          setCursorOffset(element, 0);
+        }
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [docs]);
+
   // Check for completed sections and trigger archive
   useEffect(() => {
     if (archivingSectionRef.current) return;
@@ -157,73 +196,110 @@ export const Notepad = () => {
 
     if (newlyComplete.length > 0) {
       const section = newlyComplete[0];
-      // Mark section for archiving - AnimatePresence will handle exit animation
-      archivingSectionRef.current = { startIndex: section.startIndex, endIndex: section.endIndex };
-      // After exit animation, actually archive
-      setTimeout(() => {
-        if (archivingSectionRef.current) {
-          // Capture indices before clearing the ref
-          const archivedStartIndex = archivingSectionRef.current.startIndex;
-          const archivedEndIndex = archivingSectionRef.current.endIndex;
+      const { startIndex: archivedStartIndex, endIndex: archivedEndIndex } = section;
 
-          archiveSection({
-            startIndex: archivedStartIndex,
-            endIndex: archivedEndIndex,
-          });
-          archivingSectionRef.current = null;
+      // Mark section for archiving
+      archivingSectionRef.current = { startIndex: archivedStartIndex, endIndex: archivedEndIndex };
 
-          // Use zero-delay timeout to process after React has handled the archiveSection update
+      // Force re-render to show exit animation
+      forceUpdate({});
+
+      // Wait for animation to complete, then archive
+      // Use double RAF to ensure React has committed and animation has started
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
           setTimeout(() => {
-            const currentDoc = documentService.load();
+            if (!archivingSectionRef.current) return;
 
-            // After archiving, the document shrinks by (endIndex - startIndex) lines
-            // The line that was at endIndex is now at startIndex position
-            // We need to remove the empty line at this new position
-            const emptyLineIndex = archivedStartIndex;
-            if (emptyLineIndex < currentDoc.length) {
-              const lineAfterArchived = currentDoc[emptyLineIndex];
-              if (lineAfterArchived && !lineAfterArchived.text.trim()) {
-                // Remove only this specific empty line
-                const cleaned = [
-                  ...currentDoc.slice(0, emptyLineIndex),
-                  ...currentDoc.slice(emptyLineIndex + 1),
-                ];
-                documentService.save(cleaned);
-                setDocument(cleaned);
+            // Actually archive the section
+            archiveSection({
+              startIndex: archivedStartIndex,
+              endIndex: archivedEndIndex,
+            });
+            archivingSectionRef.current = null;
 
-                // Set up the refs for focus - must happen BEFORE addLine
-                lastLineCountRef.current = cleaned.length;
-                shouldFocusLastRef.current = true;
+            // Cleanup: remove empty line and add new one
+            setTimeout(() => {
+              const currentDoc = documentService.load();
+              const emptyLineIndex = archivedStartIndex;
 
-                // Add the new line - this will trigger the focus useEffect
-                addLine("");
-                return;
+              if (emptyLineIndex < currentDoc.length) {
+                const lineAfterArchived = currentDoc[emptyLineIndex];
+                if (lineAfterArchived && !lineAfterArchived.text.trim()) {
+                  const cleaned = [
+                    ...currentDoc.slice(0, emptyLineIndex),
+                    ...currentDoc.slice(emptyLineIndex + 1),
+                  ];
+                  storage.setSync(cleaned);
+                  setDocument(cleaned);
+                }
               }
-            }
 
-            // No empty line to remove, just update refs and add new line
-            lastLineCountRef.current = currentDoc.length;
-            shouldFocusLastRef.current = true;
-            addLine("");
-          }, 0);
-        }
-      }, 300);
-      return;
+              const finalDoc = documentService.load();
+              lastLineCountRef.current = finalDoc.length;
+              shouldFocusLastRef.current = true;
+              addLine("");
+            }, 0);
+          }, 350); // Slightly longer than animation duration (300ms)
+        });
+      });
     }
 
     prevSectionsRef.current = currentSections;
-  }, [docs, archiveSection]);
+  }, [docs, archiveSection, setDocument, addLine]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      lastLineCountRef.current = docs.length;
-      shouldFocusLastRef.current = true;
-      addLine();
-    }
-  };
 
-  const handleNavigate = (fromIndex: number, direction: "up" | "down" | "left" | "right") => {
+      const activeElement = document.activeElement as HTMLElement;
+      const focusedLineId = activeElement?.getAttribute("data-line-id");
+
+      if (!focusedLineId) {
+        // Fallback: no line is focused, add at the end
+        lastLineCountRef.current = docs.length;
+        shouldFocusLastRef.current = true;
+        addLine();
+        return;
+      }
+
+      const focusedLine = docs.find((line) => line.id === focusedLineId);
+      if (!focusedLine) return;
+
+      // Get cursor position within the text
+      const cursorOffset = getCursorOffset(activeElement);
+      const textLength = focusedLine.text.length;
+
+      if (textLength === 0) {
+        // Empty line: insert new line below
+        const updated = insertLineAfter(focusedLineId, "");
+        const focusedIndex = docs.findIndex((l) => l.id === focusedLineId);
+        if (focusedIndex !== -1 && updated[focusedIndex + 1]) {
+          newLineToFocusRef.current = updated[focusedIndex + 1].id;
+        }
+      } else if (cursorOffset === 0) {
+        // At start of non-empty line: insert new line above but stay on current line
+        insertLineBefore(focusedLineId, "");
+        newLineToFocusRef.current = null; // Don't move focus, stay on current line
+      } else if (cursorOffset < textLength) {
+        // In middle: split the line
+        const updated = splitLine(focusedLineId, cursorOffset);
+        const focusedIndex = docs.findIndex((l) => l.id === focusedLineId);
+        if (focusedIndex !== -1 && updated[focusedIndex + 1]) {
+          newLineToFocusRef.current = updated[focusedIndex + 1].id;
+        }
+      } else {
+        // At end: insert new line below
+        const updated = insertLineAfter(focusedLineId, "");
+        const focusedIndex = docs.findIndex((l) => l.id === focusedLineId);
+        if (focusedIndex !== -1 && updated[focusedIndex + 1]) {
+          newLineToFocusRef.current = updated[focusedIndex + 1].id;
+        }
+      }
+    }
+  }, [docs, insertLineAfter, insertLineBefore, splitLine, addLine]);
+
+  const handleNavigate = useCallback((fromIndex: number, direction: "up" | "down" | "left" | "right") => {
     const isGoingUp = direction === "up" || direction === "left";
     const targetIndex = isGoingUp ? fromIndex - 1 : fromIndex + 1;
 
@@ -239,9 +315,9 @@ export const Notepad = () => {
         setCursorOffset(targetElement, isGoingUp ? textLength : 0);
       }
     }
-  };
+  }, [docs]);
 
-  const handleDeleteAndNavigate = (currentIndex: number) => {
+  const handleDeleteAndNavigate = useCallback((currentIndex: number) => {
     const lineToDelete = docs[currentIndex];
     if (!lineToDelete) return;
 
@@ -257,57 +333,80 @@ export const Notepad = () => {
         offset: targetText.length,
       };
     }
-  };
+  }, [docs, deleteLine]);
 
-  if (viewMode === "archive") {
-    return <ArchiveView />;
-  }
-
-  // Check if a line is in the archiving section
-  const isArchiving = (index: number) => {
-    if (!archivingSectionRef.current) return false;
-    const { startIndex, endIndex } = archivingSectionRef.current;
-    return index >= startIndex && index < endIndex;
-  };
+  // Toggle view mode handler
+  const handleToggleViewMode = useCallback(() => {
+    setViewMode((m) => (m === "active" ? "archive" : "active"));
+  }, [setViewMode]);
 
   return (
     <div className="notepad" onKeyDown={handleKeyDown}>
-      <div className="todo-lines">
-        <AnimatePresence mode="popLayout">
-          {docs.map((line, index) => {
-            if (isArchiving(index)) return null;
-            return (
-              <motion.div
-                key={line.id}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <TodoLine
-                  line={line}
-                  index={index}
-                  totalLines={docs.length}
-                  onNavigate={handleNavigate}
-                  onDeleteAndNavigate={handleDeleteAndNavigate}
-                  updatedAt={line.updatedAt}
-                  translations={t}
-                  isEmptyDocument={!hasVisibleTodos}
-                  showPlaceholder={!hasVisibleTodos && index === 0}
-                />
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
-      {isPhoneDevice && (
-        <motion.button
-          className="settings-phone-btn"
-          onClick={() => setViewMode((m) => (m === "active" ? "archive" : "active"))}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          {t.settingsHere}
-        </motion.button>
+      {viewMode === "archive" ? (
+        <ArchiveView />
+      ) : (
+        <>
+          <div className="todo-lines">
+            <AnimatePresence>
+              {docs.map((line, index) => {
+                const isBeingArchived = archivingSectionRef.current &&
+                  index >= archivingSectionRef.current.startIndex &&
+                  index < archivingSectionRef.current.endIndex;
+
+                if (isBeingArchived) {
+                  return (
+                    <motion.div
+                      key={line.id}
+                      exit={{ opacity: 0, height: 0, marginBottom: 0, marginTop: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                    >
+                      <TodoLine
+                        line={line}
+                        index={index}
+                        totalLines={docs.length}
+                        onNavigate={handleNavigate}
+                        onDeleteAndNavigate={handleDeleteAndNavigate}
+                        updatedAt={line.updatedAt}
+                        translations={t}
+                        isEmptyDocument={!hasVisibleTodos}
+                        showPlaceholder={!hasVisibleTodos && index === 0}
+                        isAfterLastTodo={index > actualLastNonEmptyIndex}
+                      />
+                    </motion.div>
+                  );
+                }
+
+                return (
+                  <div key={line.id}>
+                    <TodoLine
+                      line={line}
+                      index={index}
+                      totalLines={docs.length}
+                      onNavigate={handleNavigate}
+                      onDeleteAndNavigate={handleDeleteAndNavigate}
+                      updatedAt={line.updatedAt}
+                      translations={t}
+                      isEmptyDocument={!hasVisibleTodos}
+                      showPlaceholder={!hasVisibleTodos && index === 0}
+                      isAfterLastTodo={index > actualLastNonEmptyIndex}
+                    />
+                  </div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+          {isPhoneDevice && (
+            <motion.button
+              className="settings-phone-btn"
+              onClick={handleToggleViewMode}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              {t.settingsHere}
+            </motion.button>
+          )}
+        </>
       )}
     </div>
   );

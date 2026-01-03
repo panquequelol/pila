@@ -3,6 +3,25 @@ import { STORAGE_KEY, ARCHIVE_STORAGE_KEY, SETTINGS_STORAGE_KEY, type NotepadDoc
 
 const ls = new SecureLS({ encodingType: "aes" });
 
+// Simple debounce implementation (no external dependency)
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  return ((...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), wait);
+  }) as T;
+}
+
+// Sync set for immediate writes (e.g., on page unload)
+const setSync = (document: NotepadDocument): void => {
+  ls.set(STORAGE_KEY, JSON.stringify(document));
+};
+
+// Debounced save for performance - only writes to storage after user stops typing
+export const debouncedSave = debounce((document: NotepadDocument) => {
+  ls.set(STORAGE_KEY, JSON.stringify(document));
+}, 500); // Save after 500ms of inactivity
+
 export const storage = {
   get: (): NotepadDocument => {
     try {
@@ -14,9 +33,10 @@ export const storage = {
     }
   },
 
-  set: (document: NotepadDocument): void => {
-    ls.set(STORAGE_KEY, JSON.stringify(document));
-  },
+  set: debouncedSave,
+
+  // Immediate save for critical operations (like clearing data)
+  setSync: setSync,
 
   clear: (): void => {
     ls.remove(STORAGE_KEY);
