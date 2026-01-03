@@ -39,6 +39,7 @@ export const Notepad = () => {
   const [isPhoneDevice, setIsPhoneDevice] = useState(false);
   const onAnimationCompleteRef = useRef<(() => void) | null>(null);
   const [archivingSection, setArchivingSection] = useState<{ startIndex: number; endIndex: number } | null>(null);
+  const isTrimmingRef = useRef(false);
 
   // Ref for docs that doesn't cause re-renders when accessed
   const docsRef = useRef(docs);
@@ -82,10 +83,10 @@ export const Notepad = () => {
     }
   }, [docs]);
 
-  // Cmd+S handler for toggling view mode
+  // Cmd+, handler for toggling view mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === "s" || e.key === "S") && (e.ctrlKey || e.metaKey)) {
+      if (e.key === "," && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         e.stopPropagation();
         setViewMode((m) => (m === "active" ? "archive" : "active"));
@@ -100,12 +101,69 @@ export const Notepad = () => {
     const commands: Command[] = [
       {
         id: "toggle-theme",
-        text: settings.darkMode === "dark" ? "switch to light mode" : "switch to dark mode",
+        text: t("toggleTheme"),
         onClick: () => setDarkMode(settings.darkMode === "dark" ? "light" : "dark"),
+      },
+      {
+        id: "trim-noise",
+        text: t("trimNoise"),
+        onClick: () => {
+          const currentDocs = docsRef.current;
+          // Find first non-empty line index
+          let firstNonEmpty = -1;
+          for (let i = 0; i < currentDocs.length; i++) {
+            if (currentDocs[i].text.trim()) {
+              firstNonEmpty = i;
+              break;
+            }
+          }
+          // Find last non-empty line index
+          let lastNonEmpty = -1;
+          for (let i = currentDocs.length - 1; i >= 0; i--) {
+            if (currentDocs[i].text.trim()) {
+              lastNonEmpty = i;
+              break;
+            }
+          }
+
+          // If no non-empty lines found, keep only one empty line at top
+          if (firstNonEmpty === -1) {
+            isTrimmingRef.current = true;
+            const newId = crypto.randomUUID();
+            const singleEmpty = [{
+              id: newId,
+              text: "",
+              state: "TODO" as const,
+              updatedAt: Date.now(),
+            }];
+            storage.setSync(singleEmpty);
+            setDocument(singleEmpty);
+
+            // Focus the new empty line after React renders
+            setTimeout(() => {
+              const element = document.querySelector(`[data-line-id="${newId}"]`) as HTMLElement;
+              element?.focus();
+              isTrimmingRef.current = false;
+            }, 0);
+            return;
+          }
+
+          // Otherwise, trim from first to last non-empty
+          if (firstNonEmpty > 0 || lastNonEmpty < currentDocs.length - 1) {
+            const trimmed = currentDocs.slice(firstNonEmpty, lastNonEmpty + 1);
+            storage.setSync(trimmed);
+            setDocument(trimmed);
+          }
+        },
+      },
+      {
+        id: "toggle-view",
+        text: viewMode === "active" ? t("openSettings") : t("openTodos"),
+        onClick: () => setViewMode((m) => (m === "active" ? "archive" : "active")),
       },
     ];
     setCommands(commands);
-  }, [settings.darkMode, setDarkMode, setCommands]);
+  }, [viewMode, settings, setDarkMode, setCommands, setDocument, setViewMode, t]);
 
   // Cmd+P handler for toggling command palette
   useEffect(() => {
@@ -157,9 +215,9 @@ export const Notepad = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [viewMode, addLine, docsRef]);
 
-  // Ensure document has at least one line (but don't interfere with archiving focus)
+  // Ensure document has at least one line (but don't interfere with archiving focus or trimming)
   useEffect(() => {
-    if (docs.length === 0 && !shouldFocusLastRef.current) {
+    if (docs.length === 0 && !shouldFocusLastRef.current && !isTrimmingRef.current) {
       addLine("");
     }
   }, [docs.length, addLine]);

@@ -27,7 +27,19 @@ export const resources = {
       langChinese: "中文 (Chinese)",
 
       // Empty state hint
-      emptyHint: "type here. settings at",
+      emptyHint: "type here. commands at",
+      commandShortcutMac: "⌘ + p",
+      commandShortcutWin: "ctrl + p",
+
+      // Command palette
+      toggleTheme: "toggle theme",
+      trimNoise: "trim noise",
+      openSettings: "settings",
+      openTodos: "todos",
+      commandPlaceholder: "type a command...",
+      noCommandsFound: "no commands found",
+      navigateHint: "↑↓ navigate",
+      selectHint: "enter select",
     },
   },
   es: {
@@ -55,7 +67,19 @@ export const resources = {
       langChinese: "中文 (Chino)",
 
       // Empty state hint
-      emptyHint: "escribe aquí. configuración en",
+      emptyHint: "escribe aquí. comandos en",
+      commandShortcutMac: "⌘ + p",
+      commandShortcutWin: "ctrl + p",
+
+      // Command palette
+      toggleTheme: "cambiar tema",
+      trimNoise: "eliminar ruido",
+      openSettings: "configuración",
+      openTodos: "tareas",
+      commandPlaceholder: "escribe un comando...",
+      noCommandsFound: "no se encontraron comandos",
+      navigateHint: "↑↓ navegar",
+      selectHint: "enter seleccionar",
     },
   },
   ja: {
@@ -83,7 +107,19 @@ export const resources = {
       langChinese: "中文 (中国語)",
 
       // Empty state hint
-      emptyHint: "ここに入力。設定は",
+      emptyHint: "ここに入力。コマンドは",
+      commandShortcutMac: "⌘ + p",
+      commandShortcutWin: "ctrl + p",
+
+      // Command palette
+      toggleTheme: "テーマ切り替え",
+      trimNoise: "空行を削除",
+      openSettings: "設定",
+      openTodos: "タスク",
+      commandPlaceholder: "コマンドを入力...",
+      noCommandsFound: "コマンドが見つかりません",
+      navigateHint: "↑↓ 移動",
+      selectHint: "enter 選択",
     },
   },
   zh: {
@@ -111,7 +147,19 @@ export const resources = {
       langChinese: "中文",
 
       // Empty state hint
-      emptyHint: "在此输入。设置在",
+      emptyHint: "在此输入。命令在",
+      commandShortcutMac: "⌘ + p",
+      commandShortcutWin: "ctrl + p",
+
+      // Command palette
+      toggleTheme: "切换主题",
+      trimNoise: "删除空行",
+      openSettings: "设置",
+      openTodos: "待办",
+      commandPlaceholder: "输入命令...",
+      noCommandsFound: "未找到命令",
+      navigateHint: "↑↓ 导航",
+      selectHint: "enter 选择",
     },
   },
 } as const;

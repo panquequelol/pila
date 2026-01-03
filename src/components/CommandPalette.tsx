@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { useAtom } from "jotai";
 import { commandPaletteOpenAtom, commandsAtom, type Command } from "../atoms/commandPalette";
+import { useTranslation } from "react-i18next";
+import { Modal } from "@mui/base/Modal";
+import { AnimatePresence, motion } from "motion/react";
 
 export const CommandPalette = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useAtom(commandPaletteOpenAtom);
   const [commands] = useAtom(commandsAtom);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -26,30 +29,22 @@ export const CommandPalette = () => {
     filteredCommandsRef.current = filteredCommands;
   }, [filteredCommands]);
 
-  // Reset selected index when filtered commands change
+  // Reset selected index when filtered commands change or when palette opens
   useEffect(() => {
     setSelectedIndex(0);
-  }, [filteredCommands]);
+  }, [filteredCommands, isOpen]);
 
-  // Focus input when opened, reset state when closed
-  useEffect(() => {
-    if (isOpen) {
-      inputRef.current?.focus();
-    } else {
-      setSearchQuery("");
-      setSelectedIndex(0);
+  // Focus input synchronously when opened, reset state when closed
+  const inputRefCallback = useCallback((node: HTMLInputElement | null) => {
+    inputRef.current = node;
+    if (node && isOpen) {
+      node.focus();
     }
   }, [isOpen]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     const currentFiltered = filteredCommandsRef.current;
-
-    if (e.key === "Escape") {
-      setIsOpen(false);
-      setSearchQuery("");
-      return;
-    }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -85,13 +80,13 @@ export const CommandPalette = () => {
     }
   }, [selectedIndex, filteredCommands.length]);
 
-  const handleCommandClick = useCallback((command: Command) => {
-    command.onClick();
+  const handleClose = useCallback((_event: {}, _reason: 'backdropClick' | 'escapeKeyDown') => {
     setIsOpen(false);
     setSearchQuery("");
   }, [setIsOpen]);
 
-  const handleBackdropClick = useCallback(() => {
+  const handleCommandClick = useCallback((command: Command) => {
+    command.onClick();
     setIsOpen(false);
     setSearchQuery("");
   }, [setIsOpen]);
@@ -103,121 +98,119 @@ export const CommandPalette = () => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Backdrop */}
+        <Modal
+          open={isOpen}
+          onClose={handleClose}
+          disableAutoFocus={true}
+          hideBackdrop={true}
+          slots={{
+            root: "div",
+          }}
+          slotProps={{
+            root: {
+              className: "fixed inset-0 flex items-start justify-center pt-[20vh] z-[1001]",
+            },
+          }}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-black/20 z-[1000]"
-            onClick={handleBackdropClick}
-            aria-hidden="true"
-          />
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.1, ease: "easeOut" }}
+            className="w-full max-w-md mx-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="command-palette-label"
+            style={{
+              backgroundColor: "var(--color-bg)",
+              border: "var(--stroke-width) solid var(--color-archive-border)",
+              borderRadius: "8px",
+              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
+            }}
+          >
+        {/* Input */}
+        <input
+          ref={inputRefCallback}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={t("commandPlaceholder")}
+          aria-label="Search commands"
+          aria-autocomplete="list"
+          aria-controls="command-list"
+          aria-expanded="true"
+          role="combobox"
+          id="command-palette-label"
+          className="w-full px-4 py-3 bg-transparent outline-none"
+          style={{
+            color: "var(--color-text)",
+            fontSize: "var(--base-font-size)",
+            fontFamily: "inherit",
+            borderBottom: "1px solid var(--color-archive-border)",
+          }}
+        />
 
-          {/* Palette */}
-          <div className="fixed inset-0 flex items-start justify-center pt-[20vh] z-[1001]">
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="w-full max-w-md mx-4"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="command-palette-label"
-              style={{
-                backgroundColor: "var(--color-bg)",
-                border: "var(--stroke-width) solid var(--color-archive-border)",
-                borderRadius: "8px",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
-              }}
+        {/* Command List */}
+        <div
+          ref={listRef}
+          role="listbox"
+          aria-label="Search results"
+          id="command-list"
+          className="max-h-[60vh] overflow-y-auto overflow-x-hidden"
+        >
+          {filteredCommands.length === 0 ? (
+            <div
+              className="px-4 py-8 text-center"
+              style={{ color: "var(--color-text-placeholder)" }}
             >
-              {/* Input */}
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="type a command..."
-                aria-label="Search commands"
-                aria-autocomplete="list"
-                aria-controls="command-list"
-                aria-expanded="true"
-                role="combobox"
-                id="command-palette-label"
-                className="w-full px-4 py-3 bg-transparent outline-none"
+              {t("noCommandsFound")}
+            </div>
+          ) : (
+            filteredCommands.map((command, index) => (
+              <button
+                key={command.id}
+                onClick={() => handleCommandClick(command)}
+                onMouseEnter={() => handleMouseEnter(index)}
+                aria-selected={index === selectedIndex}
+                role="option"
+                className="w-full text-left px-4 py-3 outline-none cursor-pointer"
                 style={{
                   color: "var(--color-text)",
                   fontSize: "var(--base-font-size)",
                   fontFamily: "inherit",
-                  borderBottom: "1px solid var(--color-archive-border)",
+                  textTransform: "lowercase",
+                  backgroundColor:
+                    index === selectedIndex
+                      ? "var(--color-bg-2)"
+                      : "transparent",
+                  borderBottom:
+                    index < filteredCommands.length - 1
+                      ? "1px solid var(--color-archive-border)"
+                      : "none",
                 }}
-              />
-
-              {/* Command List */}
-              <div
-                ref={listRef}
-                role="listbox"
-                aria-label="Search results"
-                id="command-list"
-                className="max-h-[60vh] overflow-y-auto overflow-x-hidden"
               >
-                {filteredCommands.length === 0 ? (
-                  <div
-                    className="px-4 py-8 text-center"
-                    style={{ color: "var(--color-text-placeholder)" }}
-                  >
-                    No commands found
-                  </div>
-                ) : (
-                  filteredCommands.map((command, index) => (
-                    <button
-                      key={command.id}
-                      onClick={() => handleCommandClick(command)}
-                      onMouseEnter={() => handleMouseEnter(index)}
-                      aria-selected={index === selectedIndex}
-                      role="option"
-                      className="w-full text-left px-4 py-3 outline-none cursor-pointer"
-                      style={{
-                        color: "var(--color-text)",
-                        fontSize: "var(--base-font-size)",
-                        fontFamily: "inherit",
-                        textTransform: "lowercase",
-                        backgroundColor:
-                          index === selectedIndex
-                            ? "var(--color-bg-2)"
-                            : "transparent",
-                        borderBottom:
-                          index < filteredCommands.length - 1
-                            ? "1px solid var(--color-archive-border)"
-                            : "none",
-                      }}
-                    >
-                      {command.text}
-                    </button>
-                  ))
-                )}
-              </div>
+                {command.text}
+              </button>
+            ))
+          )}
+        </div>
 
-              {/* Footer hint */}
-              {filteredCommands.length > 0 && (
-                <div
-                  className="px-4 py-2 text-xs flex gap-4"
-                  style={{
-                    color: "var(--color-text-placeholder)",
-                    borderTop: "1px solid var(--color-archive-border)",
-                  }}
-                >
-                  <span>↑↓ navigate</span>
-                  <span>enter select</span>
-                  <span>esc close</span>
-                </div>
-              )}
-            </motion.div>
+        {/* Footer hint */}
+        {filteredCommands.length > 0 && (
+          <div
+            className="px-4 py-2 text-xs flex gap-4"
+            style={{
+              color: "var(--color-text-placeholder)",
+              borderTop: "1px solid var(--color-archive-border)",
+            }}
+          >
+            <span>{t("navigateHint")}</span>
+            <span>{t("selectHint")}</span>
           </div>
-        </>
+        )}
+      </motion.div>
+    </Modal>
       )}
     </AnimatePresence>
   );

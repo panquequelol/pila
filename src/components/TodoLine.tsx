@@ -221,7 +221,7 @@ export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAnd
             textTransform: "lowercase",
           }}
         >
-          {t("emptyHint")} {IS_MAC ? "⌘ + p" : "ctrl + p"}
+          {t("emptyHint")} {IS_MAC ? t("commandShortcutMac") : t("commandShortcutWin")}
         </div>
       )}
       {!isEmpty && (
