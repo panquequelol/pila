@@ -6,7 +6,7 @@ import { formatArchiveTimestamp } from "../utils/timestamp";
 import { isPhone } from "../utils/device";
 import { motion, AnimatePresence } from "motion/react";
 import { SettingsPanel } from "./SettingsPanel";
-import { useTranslations } from "../i18n/translations";
+import { useTranslation } from "react-i18next";
 
 export const ArchiveView = () => {
   const [archive] = useAtom(archiveAtom);
@@ -15,7 +15,7 @@ export const ArchiveView = () => {
   const clearAllArchives = useSetAtom(clearAllArchivesAtom);
   const setViewMode = useSetAtom(viewModeAtom);
   const [settings] = useAtom(settingsAtom);
-  const t = useTranslations(settings.language);
+  const { t } = useTranslation();
   const [isPhoneDevice, setIsPhoneDevice] = useState(false);
 
   // Detect phone device on mount and when window resizes (debounced)
@@ -35,7 +35,7 @@ export const ArchiveView = () => {
   }, []);
 
   const handleNuke = () => {
-    if (window.confirm(t.nukeConfirm)) {
+    if (window.confirm(t("nukeConfirm"))) {
       clearAllArchives();
     }
   };
@@ -44,10 +44,10 @@ export const ArchiveView = () => {
     <div className="archive-view">
       <SettingsPanel />
       <div className="archive-header-row">
-        <p className="archive-notice">{t.archiveNotice}</p>
+        <p className="archive-notice">{t("archiveNotice")}</p>
         {archive.length > 0 && (
           <button className="nuke-btn" onClick={handleNuke}>
-            {t.nuke}
+            {t("nuke")}
           </button>
         )}
       </div>
@@ -59,7 +59,7 @@ export const ArchiveView = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {t.archiveEmpty}
+            {t("archiveEmpty")}
           </motion.p>
         ) : (
           <div className="archive-sections">
@@ -82,13 +82,13 @@ export const ArchiveView = () => {
                       className="archive-btn restore"
                       onClick={() => restore(section.id)}
                     >
-                      {t.restore}
+                      {t("restore")}
                     </button>
                     <button
                       className="archive-btn delete"
                       onClick={() => deleteArchive(section.id)}
                     >
-                      {t.delete}
+                      {t("delete")}
                     </button>
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export const ArchiveView = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {t.goBack}
+          {t("goBack")}
         </motion.button>
       )}
     </div>

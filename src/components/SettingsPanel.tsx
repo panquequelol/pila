@@ -8,14 +8,15 @@ import {
   type DarkMode,
   type Language,
 } from "../atoms/settings";
-import { useTranslations, languages } from "../i18n/translations";
+import { useTranslation } from "react-i18next";
+import { languages } from "../i18n/resources";
 
 export const SettingsPanel = () => {
   const [settings] = useAtom(settingsAtom);
   const setDarkMode = useSetAtom(setDarkModeAtom);
   const setTextSize = useSetAtom(setTextSizeAtom);
   const setLanguage = useSetAtom(setLanguageAtom);
-  const t = useTranslations(settings.language);
+  const { t } = useTranslation();
 
   const handleDarkModeChange = (mode: DarkMode) => {
     setDarkMode(mode);
@@ -39,21 +40,21 @@ export const SettingsPanel = () => {
             onClick={() => handleDarkModeChange("light")}
             aria-label="Light mode"
           >
-            {t.light}
+            {t("light")}
           </button>
           <button
             className={`mode-btn ${settings.darkMode === "dark" ? "active" : ""}`}
             onClick={() => handleDarkModeChange("dark")}
             aria-label="Dark mode"
           >
-            {t.dark}
+            {t("dark")}
           </button>
         </div>
       </div>
 
       {/* Size Selector */}
       <div className="setting-row">
-        <span className="setting-label">{t.size}</span>
+        <span className="setting-label">{t("size")}</span>
         <div className="size-options">
           <button
             className={`size-btn ${settings.textSize === "lsize" ? "active" : ""}`}
@@ -81,7 +82,7 @@ export const SettingsPanel = () => {
 
       {/* Language Selector */}
       <div className="setting-row">
-        <span className="setting-label">{t.language}</span>
+        <span className="setting-label">{t("language")}</span>
         <select
           className="language-select"
           value={settings.language}

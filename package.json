@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "date-fns": "^4.1.0",
+    "i18next": "^25.7.3",
     "jotai": "^2.16.1",
     "motion": "^12.23.26",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^16.5.1",
     "secure-ls": "^2.0.0"
   },
   "devDependencies": {
