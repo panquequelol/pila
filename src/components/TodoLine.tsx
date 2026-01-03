@@ -1,11 +1,14 @@
 import type { TodoLine as TodoLineType } from "../orquestrator";
 import { useSetAtom } from "jotai";
 import { toggleLineAtom, updateLineTextAtom } from "../atoms";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo, useCallback } from "react";
 import { getCursorOffset, setCursorOffset } from "../utils/cursor";
 import { formatTimestamp } from "../utils/timestamp";
 import { motion } from "motion/react";
 import { type Translations } from "../i18n/translations";
+
+// Detect platform once at module load time
+const IS_MAC = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 interface TodoLineProps {
   line: TodoLineType;
@@ -48,7 +51,7 @@ const saveCursorPosition = (element: HTMLElement): number | null => {
   return preCaretRange.toString().length;
 };
 
-export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, translations, isEmptyDocument, showPlaceholder, isAfterLastTodo = false }: TodoLineProps) => {
+export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, translations, isEmptyDocument, showPlaceholder, isAfterLastTodo = false }: TodoLineProps) => {
   const toggleLine = useSetAtom(toggleLineAtom);
   const updateLineText = useSetAtom(updateLineTextAtom);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -56,19 +59,16 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
 
   const isEmpty = !line.text.trim();
 
-  // Detect platform for keyboard shortcut display
-  const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     if (!isEmpty) {
       toggleLine(line.id);
     }
-  };
+  }, [isEmpty, toggleLine, line.id]);
 
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+  const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     const text = e.currentTarget.textContent || "";
     updateLineText({ lineId: line.id, text });
-  };
+  }, [line.id, updateLineText]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const editor = editorRef.current;
@@ -196,7 +196,7 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
       />
       {showPlaceholder && !line.text && (
         <div className="todo-placeholder">
-          {translations.emptyHint} {isMac ? "⌘ + p" : "ctrl + p"}
+          {translations.emptyHint} {IS_MAC ? "⌘ + p" : "ctrl + p"}
         </div>
       )}
       {!isEmpty && (
@@ -204,4 +204,17 @@ export const TodoLine = ({ line, index, totalLines, onNavigate, onDeleteAndNavig
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for fine-grained re-render control
+  return (
+    prevProps.line.id === nextProps.line.id &&
+    prevProps.line.text === nextProps.line.text &&
+    prevProps.line.state === nextProps.line.state &&
+    prevProps.updatedAt === nextProps.updatedAt &&
+    prevProps.index === nextProps.index &&
+    prevProps.totalLines === nextProps.totalLines &&
+    prevProps.isEmptyDocument === nextProps.isEmptyDocument &&
+    prevProps.showPlaceholder === nextProps.showPlaceholder &&
+    prevProps.isAfterLastTodo === nextProps.isAfterLastTodo
+  );
+});

@@ -47,6 +47,28 @@ export const insertLineAfterAtom = atom(
   }
 );
 
+export const insertLineBeforeAtom = atom(
+  null,
+  (get, set, beforeLineId: string, text: string = "") => {
+    const current = get(documentAtom);
+    const updated = documentService.insertLineBefore(current, beforeLineId, text);
+    set(documentAtom, updated);
+    documentService.save(updated);
+    return updated;
+  }
+);
+
+export const splitLineAtom = atom(
+  null,
+  (get, set, lineId: string, splitAt: number) => {
+    const current = get(documentAtom);
+    const updated = documentService.splitLine(current, lineId, splitAt);
+    set(documentAtom, updated);
+    documentService.save(updated);
+    return updated;
+  }
+);
+
 export const deleteLineAtom = atom(
   null,
   (get, set, lineId: string) => {
