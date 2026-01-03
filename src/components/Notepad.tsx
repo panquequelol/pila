@@ -3,9 +3,11 @@ import { useAtom, useSetAtom } from "jotai";
 import { motion, AnimatePresence } from "motion/react";
 import { documentAtom, addLineAtom, deleteLineAtom, insertLineAfterAtom, insertLineBeforeAtom, splitLineAtom } from "../atoms";
 import { archiveSectionAtom, viewModeAtom } from "../atoms/archive";
-import { settingsAtom } from "../atoms/settings";
+import { settingsAtom, setDarkModeAtom } from "../atoms/settings";
 import { TodoLine } from "./TodoLine";
 import { ArchiveView } from "./ArchiveView";
+import { CommandPalette } from "./CommandPalette";
+import { commandPaletteOpenAtom, commandsAtom, type Command } from "../atoms/commandPalette";
 import { getCursorOffset, setCursorOffset } from "../utils/cursor";
 import { isPhone } from "../utils/device";
 import { getSections, type Section } from "../orquestrator/sections";
@@ -24,6 +26,9 @@ export const Notepad = () => {
   const archiveSection = useSetAtom(archiveSectionAtom);
   const [viewMode, setViewMode] = useAtom(viewModeAtom);
   const [settings] = useAtom(settingsAtom);
+  const setCommandPaletteOpen = useSetAtom(commandPaletteOpenAtom);
+  const setDarkMode = useSetAtom(setDarkModeAtom);
+  const setCommands = useSetAtom(commandsAtom);
   const { t } = useTranslation();
   const lastLineCountRef = useRef(0);
   const shouldFocusLastRef = useRef(false);
@@ -77,10 +82,10 @@ export const Notepad = () => {
     }
   }, [docs]);
 
-  // Ctrl+P handler for toggling view mode (use capture to prevent browser default)
+  // Cmd+S handler for toggling view mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === "p" || e.key === "P") && (e.ctrlKey || e.metaKey)) {
+      if ((e.key === "s" || e.key === "S") && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         e.stopPropagation();
         setViewMode((m) => (m === "active" ? "archive" : "active"));
@@ -89,6 +94,31 @@ export const Notepad = () => {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true } as EventListenerOptions);
   }, [setViewMode]);
+
+  // Register command palette commands
+  useEffect(() => {
+    const commands: Command[] = [
+      {
+        id: "toggle-theme",
+        text: settings.darkMode === "dark" ? "switch to light mode" : "switch to dark mode",
+        onClick: () => setDarkMode(settings.darkMode === "dark" ? "light" : "dark"),
+      },
+    ];
+    setCommands(commands);
+  }, [settings.darkMode, setDarkMode, setCommands]);
+
+  // Cmd+P handler for toggling command palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === "p" || e.key === "P") && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        setCommandPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true } as EventListenerOptions);
+  }, [setCommandPaletteOpen]);
 
   // "/" handler for focusing the last empty line
   useEffect(() => {
@@ -347,6 +377,7 @@ export const Notepad = () => {
 
   return (
     <div className="w-full" onKeyDown={handleKeyDown}>
+      <CommandPalette />
       {viewMode === "archive" ? (
         <ArchiveView />
       ) : (

@@ -25,16 +25,16 @@
 
 /* Dark mode - kept for Themis compatibility */
 [data-theme="dark"] {
-  /* Flexoki Dark */
-  --color-bg: #100F0F;
-  --color-bg-2: #1C1B1A;
+  /* Flexoki Dark (one tone up) */
+  --color-bg: #1C1B1A;
+  --color-bg-2: #282726;
   --color-text: #CECDC3;
   --color-text-light: #878580;
   --color-text-done: #575653;
   --color-text-placeholder: #403E3C;
   --color-keyword: #D14D41;
-  --color-archive-bg: #1C1B1A;
-  --color-archive-border: #282726;
+  --color-archive-bg: #282726;
+  --color-archive-border: #343331;
 }
 
 /* Text size profiles - kept for Themis compatibility */
