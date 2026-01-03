@@ -16,7 +16,9 @@ function AppContent() {
 function App() {
   return (
     <Provider>
-      <AppContent />
+      <div className="min-h-screen px-3 mx-auto max-w-[800px] md:px-10">
+        <AppContent />
+      </div>
     </Provider>
   );
 }

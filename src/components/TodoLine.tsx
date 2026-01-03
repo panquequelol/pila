@@ -136,15 +136,23 @@ export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAnd
   }, [line.text]);
 
   return (
-    <div className={`todo-line ${isEmpty ? "todo-line--empty" : ""} ${isAfterLastTodo && isEmpty && !showPlaceholder ? "todo-line--trailing" : ""}`} data-state={line.state} data-empty-document={isEmptyDocument ? "true" : "false"}>
+    <div className={`flex items-center gap-2 relative ${isEmpty ? "" : "min-h-[16px]"}`} data-state={line.state} data-empty-document={isEmptyDocument ? "true" : "false"}>
       {!isEmpty && (
         <motion.div
-          className="todo-toggle"
+          className="cursor-pointer select-none min-w-[calc(var(--base-font-size)*1.25)] inline-flex items-center justify-center"
+          style={{ color: "var(--color-text-light)" }}
           onClick={handleToggle}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ strokeWidth: "var(--stroke-width)" }}>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            className="block"
+            style={{ width: "calc(var(--base-font-size)*1.25)", height: "calc(var(--base-font-size)*1.25)" }}
+          >
             {/* Box */}
             <motion.rect
               x="2"
@@ -190,17 +198,40 @@ export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAnd
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        className="todo-text"
-        data-placeholder={isEmptyDocument ? "" : "..."}
+        className="border-none outline-none bg-transparent w-full py-1 inline-block align-middle leading-snug"
+        style={{
+          fontSize: "var(--base-font-size)",
+          fontFamily: "inherit",
+          textTransform: "lowercase",
+          color: line.state === "DONE" ? "var(--color-text-done)" : undefined,
+          transition: line.state === "DONE" ? "color 0.3s ease" : undefined,
+          cursor: isEmpty && isEmptyDocument ? "text" : undefined,
+        }}
+        data-placeholder={isEmptyDocument ? "" : (isAfterLastTodo && isEmpty && !showPlaceholder ? "..." : "")}
         data-line-id={line.id}
       />
       {showPlaceholder && !line.text && (
-        <div className="todo-placeholder">
+        <div
+          className="absolute left-0 top-1 pointer-events-none"
+          style={{
+            color: "var(--color-text-placeholder)",
+            fontSize: "var(--base-font-size)",
+            textTransform: "lowercase",
+          }}
+        >
           {translations.emptyHint} {IS_MAC ? "⌘ + p" : "ctrl + p"}
         </div>
       )}
       {!isEmpty && (
-        <span className="todo-timestamp">{formatTimestamp(updatedAt, translations)}</span>
+        <span
+          className="ml-auto whitespace-nowrap opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity duration-200"
+          style={{
+            fontSize: "var(--base-font-size)",
+            color: "var(--color-text-placeholder)",
+          }}
+        >
+          {formatTimestamp(updatedAt, translations)}
+        </span>
       )}
     </div>
   );

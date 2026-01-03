@@ -341,12 +341,12 @@ export const Notepad = () => {
   }, [setViewMode]);
 
   return (
-    <div className="notepad" onKeyDown={handleKeyDown}>
+    <div className="w-full" onKeyDown={handleKeyDown}>
       {viewMode === "archive" ? (
         <ArchiveView />
       ) : (
         <>
-          <div className="todo-lines">
+          <div className="flex flex-col gap-0 group">
             <AnimatePresence>
               {docs.map((line, index) => {
                 const isBeingArchived = archivingSectionRef.current &&
@@ -397,7 +397,16 @@ export const Notepad = () => {
           </div>
           {isPhoneDevice && (
             <motion.button
-              className="settings-phone-btn"
+              className="fixed bottom-4 left-1/2 -translate-x-1/2 border rounded text-center z-[1000] px-2 py-2 cursor-pointer transition-all duration-200"
+              style={{
+                borderColor: "var(--color-archive-border)",
+                backgroundColor: "var(--color-bg)",
+                color: "var(--color-text)",
+                fontSize: "var(--base-font-size)",
+                fontFamily: "inherit",
+                textTransform: "lowercase",
+              }}
+              whileHover={{ backgroundColor: "var(--color-archive-border)" }}
               onClick={handleToggleViewMode}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
