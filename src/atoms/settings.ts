@@ -19,6 +19,13 @@ export const setDarkModeAtom = atom(
     const updated = { ...current, darkMode };
     set(settingsAtom, updated);
     storage.setSettings(updated);
+
+    // Apply dark mode to DOM
+    if (darkMode === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
   }
 );
 
@@ -30,6 +37,13 @@ export const setTextSizeAtom = atom(
     const updated = { ...current, textSize };
     set(settingsAtom, updated);
     storage.setSettings(updated);
+
+    // Apply text size to DOM
+    if (textSize !== "normal") {
+      document.documentElement.setAttribute("data-text-size", textSize);
+    } else {
+      document.documentElement.removeAttribute("data-text-size");
+    }
   }
 );
 
@@ -59,11 +73,15 @@ export const initializeSettingsAtom = atom(
     // Apply dark mode
     if (settings.darkMode === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
     }
 
     // Apply text size
     if (settings.textSize !== "normal") {
       document.documentElement.setAttribute("data-text-size", settings.textSize);
+    } else {
+      document.documentElement.removeAttribute("data-text-size");
     }
 
     // Set lang attribute and sync with i18next
