@@ -180,4 +180,26 @@ export const documentService = {
     }
     return document.slice(0, lastNonEmpty + 1);
   },
+
+  moveLineUp: (document: NotepadDocument, lineId: string): NotepadDocument => {
+    const index = document.findIndex((line) => line.id === lineId);
+    if (index <= 0) return document;
+
+    const newDoc = [...document];
+    const temp = newDoc[index];
+    newDoc[index] = newDoc[index - 1];
+    newDoc[index - 1] = temp;
+    return newDoc;
+  },
+
+  moveLineDown: (document: NotepadDocument, lineId: string): NotepadDocument => {
+    const index = document.findIndex((line) => line.id === lineId);
+    if (index === -1 || index >= document.length - 1) return document;
+
+    const newDoc = [...document];
+    const temp = newDoc[index];
+    newDoc[index] = newDoc[index + 1];
+    newDoc[index + 1] = temp;
+    return newDoc;
+  },
 };

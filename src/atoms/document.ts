@@ -78,3 +78,25 @@ export const deleteLineAtom = atom(
     documentService.save(updated);
   }
 );
+
+export const moveLineUpAtom = atom(
+  null,
+  (get, set, lineId: string) => {
+    const current = get(documentAtom);
+    const updated = documentService.moveLineUp(current, lineId);
+    set(documentAtom, updated);
+    documentService.save(updated);
+    return updated;
+  }
+);
+
+export const moveLineDownAtom = atom(
+  null,
+  (get, set, lineId: string) => {
+    const current = get(documentAtom);
+    const updated = documentService.moveLineDown(current, lineId);
+    set(documentAtom, updated);
+    documentService.save(updated);
+    return updated;
+  }
+);

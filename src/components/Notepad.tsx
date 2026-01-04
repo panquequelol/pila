@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import { motion, AnimatePresence } from "motion/react";
-import { documentAtom, addLineAtom, deleteLineAtom, insertLineAfterAtom, insertLineBeforeAtom, splitLineAtom } from "../atoms";
+import { documentAtom, addLineAtom, deleteLineAtom, insertLineAfterAtom, insertLineBeforeAtom, splitLineAtom, moveLineUpAtom, moveLineDownAtom } from "../atoms";
 import { archiveSectionAtom, viewModeAtom } from "../atoms/archive";
 import { settingsAtom, setDarkModeAtom } from "../atoms/settings";
 import { TodoLine } from "./TodoLine";
@@ -23,6 +23,8 @@ export const Notepad = () => {
   const insertLineBefore = useSetAtom(insertLineBeforeAtom);
   const splitLine = useSetAtom(splitLineAtom);
   const deleteLine = useSetAtom(deleteLineAtom);
+  const moveLineUp = useSetAtom(moveLineUpAtom);
+  const moveLineDown = useSetAtom(moveLineDownAtom);
   const archiveSection = useSetAtom(archiveSectionAtom);
   const [viewMode, setViewMode] = useAtom(viewModeAtom);
   const [settings] = useAtom(settingsAtom);
@@ -428,6 +430,44 @@ export const Notepad = () => {
     }
   }, [docs, deleteLine]);
 
+  const movedLineIdRef = useRef<string | null>(null);
+
+  const handleMoveLine = useCallback((lineId: string, direction: "up" | "down") => {
+    const currentIndex = docs.findIndex((line) => line.id === lineId);
+    if (currentIndex === -1) return;
+
+    // Check bounds
+    if (direction === "up" && currentIndex <= 0) return;
+    if (direction === "down" && currentIndex >= docs.length - 1) return;
+
+    // Move the line
+    if (direction === "up") {
+      moveLineUp(lineId);
+    } else {
+      moveLineDown(lineId);
+    }
+
+    // Focus the moved line after the re-render
+    movedLineIdRef.current = lineId;
+  }, [docs, moveLineUp, moveLineDown]);
+
+  // Focus the moved line after re-render
+  useEffect(() => {
+    if (movedLineIdRef.current) {
+      const lineIdToFocus = movedLineIdRef.current;
+      movedLineIdRef.current = null;
+      const timeoutId = setTimeout(() => {
+        const element = document.querySelector(
+          `[data-line-id="${lineIdToFocus}"]`
+        ) as HTMLElement;
+        if (element) {
+          element.focus();
+        }
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [docs]);
+
   // Toggle view mode handler
   const handleToggleViewMode = useCallback(() => {
     setViewMode((m) => (m === "active" ? "archive" : "active"));
@@ -460,6 +500,7 @@ export const Notepad = () => {
                         totalLines={docs.length}
                         onNavigate={handleNavigate}
                         onDeleteAndNavigate={handleDeleteAndNavigate}
+                        onMoveLine={handleMoveLine}
                         updatedAt={line.updatedAt}
                         t={t}
                         language={settings.language}
@@ -479,6 +520,7 @@ export const Notepad = () => {
                       totalLines={docs.length}
                       onNavigate={handleNavigate}
                       onDeleteAndNavigate={handleDeleteAndNavigate}
+                      onMoveLine={handleMoveLine}
                       updatedAt={line.updatedAt}
                       t={t}
                       language={settings.language}

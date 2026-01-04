@@ -17,6 +17,7 @@ interface TodoLineProps {
   totalLines: number;
   onNavigate: (index: number, direction: "up" | "down" | "left" | "right") => void;
   onDeleteAndNavigate: (currentIndex: number) => void;
+  onMoveLine?: (lineId: string, direction: "up" | "down") => void;
   updatedAt: number;
   t: TFunction;
   language: Language;
@@ -53,7 +54,7 @@ const saveCursorPosition = (element: HTMLElement): number | null => {
   return preCaretRange.toString().length;
 };
 
-export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAndNavigate, updatedAt, t, language, isEmptyDocument, showPlaceholder, isAfterLastTodo = false }: TodoLineProps) => {
+export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAndNavigate, onMoveLine, updatedAt, t, language, isEmptyDocument, showPlaceholder, isAfterLastTodo = false }: TodoLineProps) => {
   const toggleLine = useSetAtom(toggleLineAtom);
   const updateLineText = useSetAtom(updateLineTextAtom);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -84,6 +85,20 @@ export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAnd
 
     const cursorOffset = getCursorOffset(editor);
     const textLength = line.text.length;
+
+    // Option/Alt + Arrow Up -> move line up (check before regular arrow handling)
+    if (e.key === "ArrowUp" && e.altKey && onMoveLine) {
+      e.preventDefault();
+      onMoveLine(line.id, "up");
+      return;
+    }
+
+    // Option/Alt + Arrow Down -> move line down (check before regular arrow handling)
+    if (e.key === "ArrowDown" && e.altKey && onMoveLine) {
+      e.preventDefault();
+      onMoveLine(line.id, "down");
+      return;
+    }
 
     // Arrow up at start of line -> go to previous line
     if (e.key === "ArrowUp" && cursorOffset === 0 && index > 0) {
@@ -249,6 +264,7 @@ export const TodoLine = memo(({ line, index, totalLines, onNavigate, onDeleteAnd
     prevProps.totalLines === nextProps.totalLines &&
     prevProps.isEmptyDocument === nextProps.isEmptyDocument &&
     prevProps.showPlaceholder === nextProps.showPlaceholder &&
-    prevProps.isAfterLastTodo === nextProps.isAfterLastTodo
+    prevProps.isAfterLastTodo === nextProps.isAfterLastTodo &&
+    prevProps.onMoveLine === nextProps.onMoveLine
   );
 });
