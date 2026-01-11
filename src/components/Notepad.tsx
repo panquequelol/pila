@@ -111,6 +111,7 @@ export const Notepad = () => {
         text: t("trimNoise"),
         onClick: () => {
           const currentDocs = docsRef.current;
+
           // Find first non-empty line index
           let firstNonEmpty = -1;
           for (let i = 0; i < currentDocs.length; i++) {
@@ -150,11 +151,27 @@ export const Notepad = () => {
             return;
           }
 
-          // Otherwise, trim from first to last non-empty
+          // Trim from first to last non-empty and collapse multiple empty lines to single empty line
           if (firstNonEmpty > 0 || lastNonEmpty < currentDocs.length - 1) {
             const trimmed = currentDocs.slice(firstNonEmpty, lastNonEmpty + 1);
-            storage.setSync(trimmed);
-            setDocument(trimmed);
+            // Collapse consecutive empty lines to single empty line
+            const collapsed: typeof trimmed = [];
+            let lastWasEmpty = true; // Start with true to skip leading empty lines
+            for (const line of trimmed) {
+              const isEmpty = !line.text.trim();
+              if (isEmpty) {
+                if (!lastWasEmpty) {
+                  // Only add empty line if previous line wasn't empty
+                  collapsed.push(line);
+                }
+                lastWasEmpty = true;
+              } else {
+                collapsed.push(line);
+                lastWasEmpty = false;
+              }
+            }
+            storage.setSync(collapsed);
+            setDocument(collapsed);
           }
         },
       },
